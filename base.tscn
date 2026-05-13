@@ -5,5 +5,8 @@
 [node name="Node2D" type="Node2D" unique_id=1478542497]
 
 [node name="Icon" type="Sprite2D" parent="." unique_id=139209845]
-position = Vector2(201, 122)
+texture = ExtResource("1_rpg24")
+
+[node name="Icon2" type="Sprite2D" parent="." unique_id=1090947366]
+position = Vector2(200, 0)
 texture = ExtResource("1_rpg24")
