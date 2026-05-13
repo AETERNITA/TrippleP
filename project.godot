@@ -12,7 +12,6 @@ config_version=5
 
 config/name="PingPongPuzzle"
 config/features=PackedStringArray("4.6", "Mobile")
-config/icon="res://icon.svg"
 
 [physics]
 
