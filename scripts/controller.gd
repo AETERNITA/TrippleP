@@ -1,11 +1,13 @@
-extends Node
+# controller.gd
+extends Node2D
 
+var model: GameModel
+@onready var view: TileMapLayer = $TileMapLayer # Pfad zu eurer View anpassen
 
-# Called when the node enters the scene tree for the first time.
-func _ready() -> void:
-	pass # Replace with function body.
-
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
+func _ready():
+	# 1. Model erstellen und Level generieren
+	model = GameModel.new()
+	model.setup_test_level()
+	
+	# 2. View anweisen, das Spielfeld zu zeichnen
+	view.draw_field(model)
