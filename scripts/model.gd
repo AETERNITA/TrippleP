@@ -10,11 +10,12 @@ const BODEN_GEFAERBT = 2
 var grid = []
 var width = 0
 var height = 0
+var player_x: int = 1
+var player_y: int = 1
 
-# Initialisiert ein leeres Test-Spielfeld (z.B. 5x5) mit Wänden außen
 func setup_test_level():
-	width = 22
-	height = 22
+	width = 21
+	height = 21
 	grid = []
 	
 	for y in range(height):
@@ -32,3 +33,8 @@ func get_cell(x: int, y: int) -> int:
 	if x >= 0 and x < width and y >= 0 and y < height:
 		return grid[y][x]
 	return WAND
+	
+func set_cell_dyed(x: int, y: int):
+	if x >= 0 and x < width and y >= 0 and y < height:
+		if grid[y][x] == BODEN_LEER:
+			grid[y][x] = BODEN_GEFAERBT

@@ -3,6 +3,7 @@
 [ext_resource type="Texture2D" uid="uid://14vabljswydn" path="res://scenes/View/Tilemaps/simpleGraphics_tiles32x32.png" id="1_i6bm5"]
 [ext_resource type="Script" uid="uid://by72tr2php2mo" path="res://scripts/controller.gd" id="1_ynq4k"]
 [ext_resource type="Script" uid="uid://cy5em70r56i8d" path="res://scripts/view.gd" id="3_jr2tl"]
+[ext_resource type="PackedScene" uid="uid://bmtnw05akn1f4" path="res://scenes/Player.tscn" id="4_jr2tl"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_y8ve3"]
 texture = ExtResource("1_i6bm5")
@@ -48,14 +49,17 @@ texture_region_size = Vector2i(32, 32)
 tile_size = Vector2i(32, 32)
 sources/0 = SubResource("TileSetAtlasSource_y8ve3")
 
-[node name="View" type="Node2D" unique_id=495837709]
+[node name="View" type="Node2D" unique_id=495837709 node_paths=PackedStringArray("player_node")]
 script = ExtResource("1_ynq4k")
+player_node = NodePath("Player")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=493501407]
+offset = Vector2(-300, 0)
 anchor_mode = 0
-zoom = Vector2(0.92, 0.92)
+zoom = Vector2(0.96, 0.96)
 
 [node name="TileMapLayer" type="TileMapLayer" parent="." unique_id=2064077699]
-position = Vector2(230.17, 0)
 tile_set = SubResource("TileSet_vpwe7")
 script = ExtResource("3_jr2tl")
+
+[node name="Player" parent="." unique_id=218293807 instance=ExtResource("4_jr2tl")]

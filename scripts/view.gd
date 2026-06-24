@@ -16,11 +16,12 @@ func draw_field(model: GameModel):
 			var atlas_coords = Vector2i(0, 0)
 			
 			if cell_type == model.WAND:
-				atlas_coords = Vector2i(5, 0) # Erste Kachel im Atlas (z.B. Wand)
+				atlas_coords = Vector2i(5, 0)
 			elif cell_type == model.BODEN_LEER:
-				atlas_coords = Vector2i(0, 2) # Zweite Kachel im Atlas (z.B. leerer Boden)
+				atlas_coords = Vector2i(0, 2) 
 			elif cell_type == model.BODEN_GEFAERBT:
-				atlas_coords = Vector2i(5, 4) # Dritte Kachel im Atlas (z.B. blau gefärbt)
+				atlas_coords = Vector2i(5, 4)
 			
 			# Vector2i(x, y) ist die Position auf dem Spielfeld
 			set_cell(Vector2i(x, y), source_id, atlas_coords)
+	
