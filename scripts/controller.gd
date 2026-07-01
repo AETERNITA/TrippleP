@@ -1,7 +1,10 @@
 extends Node2D
 var model: GameModel
+var elapsed_time : float
+var direction = Vector2i.ZERO
 @onready var view: TileMapLayer = $TileMapLayer
 @export var player_node: CharacterBody2D # Zieht hier das Player-Node im Inspektor rein
+
 
 #Kachelgröße in Pixeln
 const TILE_SIZE: int = 32
@@ -15,7 +18,10 @@ func _ready():
 	update_player_sprite_position()
 	
 func _process(_delta):
-	var direction = Vector2i.ZERO
+	elapsed_time += _delta
+	print (elapsed_time)
+	if elapsed_time > 0.1:
+		direction = Vector2i.ZERO
 	if Input.is_action_just_pressed("ui_right"):
 		direction = Vector2i(1, 0)
 	elif Input.is_action_just_pressed("ui_left"):
@@ -26,24 +32,24 @@ func _process(_delta):
 		direction = Vector2i(0, -1)
 	if direction != Vector2i.ZERO:
 		move_player_in_direction(direction)
-		
+
 func move_player_in_direction(dir: Vector2i):
 	var next_x = model.player_x + dir.x
 	var next_y = model.player_y + dir.y
 	
 	# Schleife: Bewege logisch im Model weiter, bis eine Wand kommt
-	# while model.get_cell(next_x, next_y) != model.WAND:
-	print("Hifle")
-	model.player_x = next_x
-	model.player_y = next_y
-# Aktuelles Feld im Model als gefärbt markieren
-	model.set_cell_dyed(model.player_x, model.player_y)
-	next_x = model.player_x + dir.x
-	next_y = model.player_y + dir.y
-# Nach dem Zug: Aktualisiere die TileMap und die visuelle Position des Spielers
+	if  model.get_cell(next_x, next_y) != model.WAND:
+		model.player_x = next_x
+		model.player_y = next_y
+		# Aktuelles Feld im Model als gefärbt markieren
+		model.set_cell_dyed(model.player_x, model.player_y)
+		next_x = model.player_x + dir.x
+		next_y = model.player_y + dir.y
+	elapsed_time = 0
+	# Nach dem Zug: Aktualisiere die TileMap und die visuelle Position des Spielers
 	view.draw_field(model)
 	update_player_sprite_position()
-
+	
 # Rechnet die Grid-Koordinaten (z.B. 1,1) in Pixel (z.B. 64,64) um
 func update_player_sprite_position():
 	if player_node:

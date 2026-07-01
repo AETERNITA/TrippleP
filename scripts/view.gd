@@ -20,7 +20,7 @@ func draw_field(model: GameModel):
 			elif cell_type == model.BODEN_LEER:
 				atlas_coords = Vector2i(0, 2) 
 			elif cell_type == model.BODEN_GEFAERBT:
-				atlas_coords = Vector2i(5, 4)
+				atlas_coords = Vector2i(4, 3)
 			
 			# Vector2i(x, y) ist die Position auf dem Spielfeld
 			set_cell(Vector2i(x, y), source_id, atlas_coords)
