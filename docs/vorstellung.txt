@@ -1,0 +1,4 @@
+Wir wollen ein Spiel entwickeln, bei dem man einen Wuerfel ueber ein Spielfeld aus Bloecken bewegt und versucht, alle begehbaren Felder komplett zu faerben.
+Der Wuerfel kann sich dabei jeweils nur bis zur naechsten Wand bewegen.
+
+Wichtig fuer das Leveldesign: Die Level sollen eher offene Spielflaechen mit taktisch gesetzten Stopper-Waenden sein, keine engen Labyrinthe. Der Kniff soll darin bestehen, eine Reihenfolge der Bewegungen zu finden, mit der das gesamte Spielfeld bemalt werden kann. Jedes Level muss deshalb so gebaut sein, dass alle Bodenfelder tatsaechlich erreichbar und faerbbar sind.
