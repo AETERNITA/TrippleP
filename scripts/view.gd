@@ -1,27 +1,23 @@
-# view.gd (auf dem TileMapLayer-Node)
 extends TileMapLayer
 
-# Zeichnet das gesamte Spielfeld anhand der Daten aus dem Model
-func draw_field(model: GameModel):
-	clear() # Löscht alte Kacheln
-	
+const SOURCE_ID := 0
+const WALL_TILE := Vector2i(5, 0)
+const EMPTY_FLOOR_TILE := Vector2i(0, 2)
+const DYED_FLOOR_TILE := Vector2i(4, 3)
+
+
+func draw_field(model: GameModel) -> void:
+	clear()
 	for y in range(model.height):
 		for x in range(model.width):
-			var cell_type = model.get_cell(x, y)
-			
-			# Die Source-ID bleibt immer 0 (euer Atlas)
-			var source_id = 0 
-			
-			# Hier wählen wir die Kachel innerhalb des Atlas aus (Spalte, Zeile)
-			var atlas_coords = Vector2i(0, 0)
-			
-			if cell_type == model.WAND:
-				atlas_coords = Vector2i(5, 0)
-			elif cell_type == model.BODEN_LEER:
-				atlas_coords = Vector2i(0, 2) 
-			elif cell_type == model.BODEN_GEFAERBT:
-				atlas_coords = Vector2i(4, 3)
-			
-			# Vector2i(x, y) ist die Position auf dem Spielfeld
-			set_cell(Vector2i(x, y), source_id, atlas_coords)
-	
+			draw_cell(model, Vector2i(x, y))
+
+
+func draw_cell(model: GameModel, cell_position: Vector2i) -> void:
+	var atlas_coordinates := EMPTY_FLOOR_TILE
+	match model.get_cell(cell_position.x, cell_position.y):
+		GameModel.WALL:
+			atlas_coordinates = WALL_TILE
+		GameModel.DYED_FLOOR:
+			atlas_coordinates = DYED_FLOOR_TILE
+	set_cell(cell_position, SOURCE_ID, atlas_coordinates)

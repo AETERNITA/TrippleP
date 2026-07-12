@@ -49,17 +49,291 @@ texture_region_size = Vector2i(32, 32)
 tile_size = Vector2i(32, 32)
 sources/0 = SubResource("TileSetAtlasSource_y8ve3")
 
-[node name="View" type="Node2D" unique_id=495837709 node_paths=PackedStringArray("player_node")]
+[node name="View" type="Node2D" unique_id=495837709]
 script = ExtResource("1_ynq4k")
-player_node = NodePath("Player")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=493501407]
-offset = Vector2(-300, 0)
-anchor_mode = 0
-zoom = Vector2(0.96, 0.96)
 
 [node name="TileMapLayer" type="TileMapLayer" parent="." unique_id=2064077699]
 tile_set = SubResource("TileSet_vpwe7")
 script = ExtResource("3_jr2tl")
 
 [node name="Player" parent="." unique_id=218293807 instance=ExtResource("4_jr2tl")]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=418489193]
+
+[node name="LevelCompleteLabel" type="Label" parent="CanvasLayer" unique_id=1704694640]
+visible = false
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 430.0
+offset_bottom = 64.0
+theme_override_font_sizes/font_size = 32
+text = "Level geschafft!"
+
+[node name="GameHud" type="Control" parent="CanvasLayer" unique_id=143812676]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SolveHintButton" type="Button" parent="CanvasLayer/GameHud" unique_id=644233575]
+custom_minimum_size = Vector2(180, 38)
+layout_mode = 0
+offset_left = 16.0
+offset_top = 72.0
+offset_right = 196.0
+offset_bottom = 110.0
+text = "Tipp"
+
+[node name="SolverInfoLabel" type="Label" parent="CanvasLayer/GameHud" unique_id=1243307740]
+visible = false
+layout_mode = 0
+offset_left = 16.0
+offset_top = 118.0
+offset_right = 360.0
+offset_bottom = 168.0
+theme_override_font_sizes/font_size = 18
+text = "Nächster Zug:"
+autowrap_mode = 3
+
+[node name="PauseMenu" type="Control" parent="CanvasLayer" unique_id=1340236942]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Background" type="ColorRect" parent="CanvasLayer/PauseMenu" unique_id=1245168285]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.03, 0.04, 0.82)
+
+[node name="MenuPanel" type="Panel" parent="CanvasLayer/PauseMenu" unique_id=173868899]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -160.0
+offset_top = -115.0
+offset_right = 160.0
+offset_bottom = 115.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TitleLabel" type="Label" parent="CanvasLayer/PauseMenu/MenuPanel" unique_id=959222662]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 26.0
+offset_right = 296.0
+offset_bottom = 66.0
+theme_override_font_sizes/font_size = 28
+text = "Pause"
+horizontal_alignment = 1
+
+[node name="ButtonContainer" type="VBoxContainer" parent="CanvasLayer/PauseMenu/MenuPanel" unique_id=984609050]
+layout_mode = 0
+offset_left = 40.0
+offset_top = 92.0
+offset_right = 280.0
+offset_bottom = 188.0
+theme_override_constants/separation = 12
+
+[node name="ContinueButton" type="Button" parent="CanvasLayer/PauseMenu/MenuPanel/ButtonContainer" unique_id=1703155229]
+custom_minimum_size = Vector2(240, 42)
+layout_mode = 2
+text = "Fortfahren"
+
+[node name="MainMenuButton" type="Button" parent="CanvasLayer/PauseMenu/MenuPanel/ButtonContainer" unique_id=553323885]
+custom_minimum_size = Vector2(240, 42)
+layout_mode = 2
+text = "Hauptmenü"
+
+[node name="StartMenu" type="Control" parent="CanvasLayer" unique_id=1129796703]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Background" type="ColorRect" parent="CanvasLayer/StartMenu" unique_id=519554578]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.035, 0.055, 0.075, 1)
+
+[node name="MenuPanel" type="Panel" parent="CanvasLayer/StartMenu" unique_id=1473658104]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = -170.0
+offset_right = 180.0
+offset_bottom = 170.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TitleLabel" type="Label" parent="CanvasLayer/StartMenu/MenuPanel" unique_id=2139171680]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = 336.0
+offset_bottom = 62.0
+theme_override_font_sizes/font_size = 30
+text = "Ping Pong Puzzle"
+horizontal_alignment = 1
+
+[node name="ButtonContainer" type="VBoxContainer" parent="CanvasLayer/StartMenu/MenuPanel" unique_id=43303780]
+layout_mode = 0
+offset_left = 40.0
+offset_top = 92.0
+offset_right = 320.0
+offset_bottom = 296.0
+theme_override_constants/separation = 12
+
+[node name="ContinueButton" type="Button" parent="CanvasLayer/StartMenu/MenuPanel/ButtonContainer" unique_id=658972043]
+custom_minimum_size = Vector2(240, 42)
+layout_mode = 2
+text = "Weiter"
+
+[node name="NewGameButton" type="Button" parent="CanvasLayer/StartMenu/MenuPanel/ButtonContainer" unique_id=407835852]
+custom_minimum_size = Vector2(240, 42)
+layout_mode = 2
+text = "Neues Spiel"
+
+[node name="LevelSelectionButton" type="Button" parent="CanvasLayer/StartMenu/MenuPanel/ButtonContainer" unique_id=2076822749]
+custom_minimum_size = Vector2(240, 42)
+layout_mode = 2
+text = "Levelauswahl"
+
+[node name="QuitButton" type="Button" parent="CanvasLayer/StartMenu/MenuPanel/ButtonContainer" unique_id=1631796799]
+custom_minimum_size = Vector2(240, 42)
+layout_mode = 2
+text = "Spiel beenden"
+
+[node name="LevelSelectionMenu" type="Control" parent="CanvasLayer" unique_id=1172046508]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Background" type="ColorRect" parent="CanvasLayer/LevelSelectionMenu" unique_id=1633592875]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.035, 0.055, 0.075, 1)
+
+[node name="MenuPanel" type="Panel" parent="CanvasLayer/LevelSelectionMenu" unique_id=152481447]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = -280.0
+offset_right = 180.0
+offset_bottom = 280.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TitleLabel" type="Label" parent="CanvasLayer/LevelSelectionMenu/MenuPanel" unique_id=1049206824]
+layout_mode = 0
+offset_left = 32.0
+offset_top = 24.0
+offset_right = 328.0
+offset_bottom = 62.0
+theme_override_font_sizes/font_size = 28
+text = "Levelauswahl"
+horizontal_alignment = 1
+
+[node name="LevelButtonContainer" type="VBoxContainer" parent="CanvasLayer/LevelSelectionMenu/MenuPanel" unique_id=502238033]
+layout_mode = 0
+offset_left = 50.0
+offset_top = 84.0
+offset_right = 310.0
+offset_bottom = 440.0
+theme_override_constants/separation = 8
+
+[node name="BackButton" type="Button" parent="CanvasLayer/LevelSelectionMenu/MenuPanel" unique_id=1491180924]
+custom_minimum_size = Vector2(260, 42)
+layout_mode = 0
+offset_left = 50.0
+offset_top = 478.0
+offset_right = 310.0
+offset_bottom = 520.0
+text = "Zurück"
+
+[node name="LevelFinishedMenu" type="Control" parent="CanvasLayer" unique_id=2044394567]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MenuPanel" type="Panel" parent="CanvasLayer/LevelFinishedMenu" unique_id=193227504]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -160.0
+offset_top = -115.0
+offset_right = 160.0
+offset_bottom = 115.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TitleLabel" type="Label" parent="CanvasLayer/LevelFinishedMenu/MenuPanel" unique_id=1159945889]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 28.0
+offset_right = 296.0
+offset_bottom = 72.0
+theme_override_font_sizes/font_size = 26
+text = "Level geschafft!"
+horizontal_alignment = 1
+
+[node name="ButtonContainer" type="VBoxContainer" parent="CanvasLayer/LevelFinishedMenu/MenuPanel" unique_id=1741277891]
+layout_mode = 0
+offset_left = 40.0
+offset_top = 102.0
+offset_right = 280.0
+offset_bottom = 198.0
+theme_override_constants/separation = 12
+
+[node name="NextLevelButton" type="Button" parent="CanvasLayer/LevelFinishedMenu/MenuPanel/ButtonContainer" unique_id=1555369358]
+custom_minimum_size = Vector2(240, 42)
+layout_mode = 2
+text = "Nächstes Level"
+
+[node name="MainMenuButton" type="Button" parent="CanvasLayer/LevelFinishedMenu/MenuPanel/ButtonContainer" unique_id=1109237053]
+custom_minimum_size = Vector2(240, 42)
+layout_mode = 2
+text = "Hauptmenü"
