@@ -4,6 +4,9 @@
 [ext_resource type="Script" uid="uid://by72tr2php2mo" path="res://scripts/controller.gd" id="1_ynq4k"]
 [ext_resource type="Script" uid="uid://cy5em70r56i8d" path="res://scripts/view.gd" id="3_jr2tl"]
 [ext_resource type="PackedScene" uid="uid://bmtnw05akn1f4" path="res://scenes/Player.tscn" id="4_jr2tl"]
+[ext_resource type="Texture2D" uid="uid://c2fhtmdlkmxm1" path="res://scenes/View/Assets/floor_texture_32.png" id="5_floor"]
+[ext_resource type="Texture2D" uid="uid://dddl42eru43rk" path="res://scenes/View/Assets/dyed_floor_texture_32.png" id="6_dyed_floor"]
+[ext_resource type="Texture2D" uid="uid://dkjpet1vsvn7f" path="res://scenes/View/Assets/wall_texture_32.png" id="7_wall"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_y8ve3"]
 texture = ExtResource("1_i6bm5")
@@ -45,9 +48,27 @@ texture_region_size = Vector2i(32, 32)
 4:4/0 = 0
 5:4/0 = 0
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_floor"]
+texture = ExtResource("5_floor")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_dyed_floor"]
+texture = ExtResource("6_dyed_floor")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_wall"]
+texture = ExtResource("7_wall")
+texture_region_size = Vector2i(32, 32)
+0:0/0 = 0
+
 [sub_resource type="TileSet" id="TileSet_vpwe7"]
 tile_size = Vector2i(32, 32)
 sources/0 = SubResource("TileSetAtlasSource_y8ve3")
+sources/1 = SubResource("TileSetAtlasSource_floor")
+sources/2 = SubResource("TileSetAtlasSource_dyed_floor")
+sources/3 = SubResource("TileSetAtlasSource_wall")
 
 [node name="View" type="Node2D" unique_id=495837709]
 script = ExtResource("1_ynq4k")

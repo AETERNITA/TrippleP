@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cgjnah072qks6"
-path="res://.godot/imported/player_sprite.png-85c36f99633f00a562842d41dadfa2c3.ctex"
+uid="uid://dddl42eru43rk"
+path="res://.godot/imported/dyed_floor_texture_32.png-fb6b40792b37361d770185637cfbb629.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://scenes/View/Assets/player_sprite.png"
-dest_files=["res://.godot/imported/player_sprite.png-85c36f99633f00a562842d41dadfa2c3.ctex"]
+source_file="res://scenes/View/Assets/dyed_floor_texture_32.png"
+dest_files=["res://.godot/imported/dyed_floor_texture_32.png-fb6b40792b37361d770185637cfbb629.ctex"]
 
 [params]
 
