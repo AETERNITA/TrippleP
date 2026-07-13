@@ -334,12 +334,16 @@ grow_vertical = 2
 [node name="TitleLabel" type="Label" parent="CanvasLayer/LevelFinishedMenu/MenuPanel" unique_id=1159945889]
 layout_mode = 0
 offset_left = 24.0
-offset_top = 28.0
+offset_top = 18.0
 offset_right = 296.0
-offset_bottom = 72.0
+offset_bottom = 88.0
 theme_override_font_sizes/font_size = 26
 text = "Level geschafft!"
 horizontal_alignment = 1
+vertical_alignment = 1
+text_overrun_behavior = 3
+autowrap_mode = 3
+max_lines_visible = 2
 
 [node name="ButtonContainer" type="VBoxContainer" parent="CanvasLayer/LevelFinishedMenu/MenuPanel" unique_id=1741277891]
 layout_mode = 0
