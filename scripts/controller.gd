@@ -1,9 +1,11 @@
 extends Node2D
 
-const TILE_SIZE := 32
-const STEP_TIME := 0.04
-const SAVE_FILE_PATH := "user://savegame.json"
-const SOLVER_HINT_MAX_MOVES := 40
+const KACHEL_GROESSE := 32
+const SCHRITT_DAUER := 0.04
+const SPEICHERDATEI := "user://savegame.json"
+const MAX_LOESUNGSZUEGE := 40
+const BOSS_LEVEL_NAME := "BOSS LEVEL"
+const BOSS_LEVEL_TIPP_TEXT := "Das ist das BOSS LEVEL - keine Tipps"
 
 var model: GameModel
 var is_moving := false
@@ -16,7 +18,7 @@ var level_complete := false
 @onready var level_selection_menu: Control = $CanvasLayer/LevelSelectionMenu
 @onready var level_finished_menu: Control = $CanvasLayer/LevelFinishedMenu
 @onready var pause_menu: Control = $CanvasLayer/PauseMenu
-@onready var level_button_container: VBoxContainer = $CanvasLayer/LevelSelectionMenu/MenuPanel/LevelButtonContainer
+@onready var level_button_container: VBoxContainer = $CanvasLayer/LevelSelectionMenu/MenuPanel/LevelScrollContainer/LevelButtonContainer
 @onready var continue_button: Button = $CanvasLayer/StartMenu/MenuPanel/ButtonContainer/ContinueButton
 @onready var new_game_button: Button = $CanvasLayer/StartMenu/MenuPanel/ButtonContainer/NewGameButton
 @onready var level_selection_button: Button = $CanvasLayer/StartMenu/MenuPanel/ButtonContainer/LevelSelectionButton
@@ -34,49 +36,50 @@ var level_complete := false
 
 func _ready() -> void:
 	model = GameModel.new()
-	model.load_levels()
-	connect_menu_buttons()
-	build_level_selection_menu()
+	model.leveldaten_laden()
+	menue_knoepfe_verbinden()
+	levelauswahl_bauen()
 
-	if not load_level(0, false):
-		model.setup_test_level()
-		model.set_cell_dyed(model.player_x, model.player_y)
-		refresh_game_view()
+	if not level_starten(0, false):
+		model.testlevel_erstellen()
+		model.feld_faerben(model.player_x, model.player_y)
+		ansicht_aktualisieren()
 
-	get_viewport().size_changed.connect(fit_game_to_screen)
-	show_start_menu()
+	get_viewport().size_changed.connect(kamera_anpassen)
+	startmenue_anzeigen()
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		if pause_menu.visible:
-			hide_pause_menu()
+			pause_schliessen()
 		elif not is_moving and not start_menu.visible and not level_selection_menu.visible and not level_finished_menu.visible:
-			show_pause_menu()
+			pause_anzeigen()
 		return
 
-	if is_moving or is_menu_open():
+	if is_moving or ist_menue_offen():
 		return
 
 	if event is InputEventKey and event.pressed and not event.echo:
+		# Praktisch zum schnellen Testen der ersten drei Level.
 		if event.keycode == KEY_1:
-			load_level(0)
+			level_starten(0)
 		elif event.keycode == KEY_2:
-			load_level(1)
+			level_starten(1)
 		elif event.keycode == KEY_3:
-			load_level(2)
+			level_starten(2)
 
 
 func _process(_delta: float) -> void:
-	if is_moving or level_complete or is_menu_open():
+	if is_moving or level_complete or ist_menue_offen():
 		return
 
-	var input_direction := check_player_input()
-	if input_direction != Vector2i.ZERO:
-		move_player_in_direction(input_direction)
+	var eingabe_richtung := bewegungseingabe_holen()
+	if eingabe_richtung != Vector2i.ZERO:
+		spieler_bewegen(eingabe_richtung)
 
 
-func check_player_input() -> Vector2i:
+func bewegungseingabe_holen() -> Vector2i:
 	if Input.is_action_just_pressed("ui_right"):
 		return Vector2i.RIGHT
 	if Input.is_action_just_pressed("ui_left"):
@@ -88,199 +91,232 @@ func check_player_input() -> Vector2i:
 	return Vector2i.ZERO
 
 
-func load_level(level_index: int, should_save := true) -> bool:
-	if not model.load_level(level_index):
+func level_starten(level_nummer: int, danach_speichern := true) -> bool:
+	if not model.level_laden(level_nummer):
 		return false
 
-	model.set_cell_dyed(model.player_x, model.player_y)
-	refresh_game_view()
-	if should_save:
-		save_game()
+	model.feld_faerben(model.player_x, model.player_y)
+	ansicht_aktualisieren()
+	if danach_speichern:
+		spiel_speichern()
 	return true
 
 
-func move_player_in_direction(direction: Vector2i) -> void:
-	var next_position := Vector2i(model.player_x, model.player_y) + direction
-	if model.get_cell(next_position.x, next_position.y) == GameModel.WALL:
+func spieler_bewegen(richtung: Vector2i) -> void:
+	var naechstes_feld := Vector2i(model.player_x, model.player_y) + richtung
+	if model.feld_auslesen(naechstes_feld.x, naechstes_feld.y) == GameModel.WAND:
 		return
 
 	is_moving = true
-	while model.get_cell(next_position.x, next_position.y) != GameModel.WALL:
-		model.player_x = next_position.x
-		model.player_y = next_position.y
-		update_player_sprite_position()
+	while model.feld_auslesen(naechstes_feld.x, naechstes_feld.y) != GameModel.WAND:
+		model.player_x = naechstes_feld.x
+		model.player_y = naechstes_feld.y
+		spielerposition_anzeigen()
 
-		await get_tree().create_timer(STEP_TIME).timeout
+		await get_tree().create_timer(SCHRITT_DAUER).timeout
 
-		if model.set_cell_dyed(model.player_x, model.player_y):
-			view.draw_cell(model, next_position)
-			update_level_complete_state()
-		next_position += direction
+		if model.feld_faerben(model.player_x, model.player_y):
+			view.feld_zeichnen(model, naechstes_feld)
+			levelstatus_pruefen()
+		naechstes_feld += richtung
 
 	is_moving = false
-	model.register_player_move(direction)
-	save_game()
-	clear_solver_info()
+	model.spielerzug_eintragen(richtung)
+	spiel_speichern()
+	loesungstext_leeren()
 
 
-func update_level_complete_state() -> void:
-	if level_complete or not model.is_level_complete():
+func levelstatus_pruefen() -> void:
+	if level_complete or not model.ist_level_geschafft():
 		return
 
 	level_complete = true
-	var completion_text := model.current_level_name + " geschafft!"
-	level_complete_label.text = completion_text
-	finished_title_label.text = completion_text
-	next_level_button.disabled = model.current_level_index >= model.get_level_count() - 1
+	var geschafft_text := model.current_level_name + " geschafft!"
+	level_complete_label.text = geschafft_text
+	finished_title_label.text = geschafft_text
+	next_level_button.disabled = model.current_level_index >= model.anzahl_level() - 1
 	level_finished_menu.visible = true
 
 
-func update_player_sprite_position() -> void:
-	player_node.position = get_player_pixel_position()
+func spielerposition_anzeigen() -> void:
+	player_node.position = spieler_pixelposition()
 
 
-func get_player_pixel_position() -> Vector2:
-	var grid_position := Vector2(model.player_x, model.player_y)
-	return grid_position * TILE_SIZE + Vector2.ONE * (TILE_SIZE / 2.0)
+func spieler_pixelposition() -> Vector2:
+	var raster_position := Vector2(model.player_x, model.player_y)
+	return raster_position * KACHEL_GROESSE + Vector2.ONE * (KACHEL_GROESSE / 2.0)
 
 
-func fit_game_to_screen() -> void:
+func kamera_anpassen() -> void:
 	if model == null or model.width <= 0 or model.height <= 0:
 		return
 
-	var field_size := Vector2(model.width, model.height) * TILE_SIZE
-	var viewport_size := get_viewport_rect().size
-	var zoom_factor := minf(viewport_size.x / field_size.x, viewport_size.y / field_size.y)
-	camera.position = field_size / 2.0
-	camera.zoom = Vector2.ONE * zoom_factor
+	var feldgroesse := Vector2(model.width, model.height) * KACHEL_GROESSE
+	var fenstergroesse := get_viewport_rect().size
+	var zoom := minf(fenstergroesse.x / feldgroesse.x, fenstergroesse.y / feldgroesse.y)
+	camera.position = feldgroesse / 2.0
+	camera.zoom = Vector2.ONE * zoom
 
 
-func connect_menu_buttons() -> void:
-	continue_button.pressed.connect(continue_game)
-	new_game_button.pressed.connect(start_new_game)
-	level_selection_button.pressed.connect(show_level_selection_menu)
-	quit_button.pressed.connect(quit_game)
-	back_button.pressed.connect(show_start_menu)
-	next_level_button.pressed.connect(load_next_level)
-	finished_main_menu_button.pressed.connect(show_start_menu)
-	pause_continue_button.pressed.connect(hide_pause_menu)
-	pause_main_menu_button.pressed.connect(show_start_menu)
-	solve_hint_button.pressed.connect(show_solution_hint)
+func menue_knoepfe_verbinden() -> void:
+	continue_button.pressed.connect(spiel_fortsetzen)
+	new_game_button.pressed.connect(neues_spiel_starten)
+	level_selection_button.pressed.connect(levelauswahl_anzeigen)
+	quit_button.pressed.connect(spiel_beenden)
+	back_button.pressed.connect(startmenue_anzeigen)
+	next_level_button.pressed.connect(naechstes_level_starten)
+	finished_main_menu_button.pressed.connect(startmenue_anzeigen)
+	pause_continue_button.pressed.connect(pause_schliessen)
+	pause_main_menu_button.pressed.connect(startmenue_anzeigen)
+	solve_hint_button.pressed.connect(loesungszug_ausfuehren)
 
 
-func build_level_selection_menu() -> void:
-	for level_index in range(model.get_level_count()):
+func levelauswahl_bauen() -> void:
+	for level_nummer in range(model.anzahl_level()):
 		var level_button := Button.new()
-		var level_data: Dictionary = model.levels[level_index]
-		level_button.text = "%d. %s" % [
-			level_index + 1,
-			level_data.get("name", "Level %d" % (level_index + 1)),
-		]
+		var level_daten: Dictionary = model.levels[level_nummer]
+		level_button.text = str(
+			level_daten.get("name", "Level %d" % (level_nummer + 1))
+		)
 		level_button.custom_minimum_size = Vector2(260, 44)
 
-		var selected_level_index := level_index
-		level_button.pressed.connect(func() -> void: select_level(selected_level_index))
+		var ausgewaehltes_level := level_nummer
+		level_button.pressed.connect(func() -> void: level_auswaehlen(ausgewaehltes_level))
 		level_button_container.add_child(level_button)
 
 
-func show_start_menu() -> void:
-	hide_menus()
+func startmenue_anzeigen() -> void:
+	menues_schliessen()
 	start_menu.visible = true
 
 
-func show_level_selection_menu() -> void:
-	hide_menus()
+func levelauswahl_anzeigen() -> void:
+	menues_schliessen()
 	level_selection_menu.visible = true
 
 
-func show_pause_menu() -> void:
+func pause_anzeigen() -> void:
 	pause_menu.visible = true
 
 
-func hide_pause_menu() -> void:
+func pause_schliessen() -> void:
 	pause_menu.visible = false
 
 
-func hide_menus() -> void:
+func menues_schliessen() -> void:
 	start_menu.visible = false
 	level_selection_menu.visible = false
 	level_finished_menu.visible = false
 	pause_menu.visible = false
 
 
-func is_menu_open() -> bool:
+func ist_menue_offen() -> bool:
 	return start_menu.visible or level_selection_menu.visible or level_finished_menu.visible or pause_menu.visible
 
 
-func continue_game() -> void:
-	hide_menus()
-	if not load_saved_game():
-		load_level(0)
+func spiel_fortsetzen() -> void:
+	menues_schliessen()
+	if not spielstand_laden():
+		level_starten(0)
 
 
-func start_new_game() -> void:
-	hide_menus()
-	load_level(0)
+func neues_spiel_starten() -> void:
+	menues_schliessen()
+	level_starten(0)
 
 
-func quit_game() -> void:
+func spiel_beenden() -> void:
 	get_tree().quit()
 
 
-func select_level(level_index: int) -> void:
-	hide_menus()
-	load_level(level_index)
+func level_auswaehlen(level_nummer: int) -> void:
+	menues_schliessen()
+	level_starten(level_nummer)
 
 
-func load_next_level() -> void:
-	var next_level_index := model.current_level_index + 1
-	if next_level_index >= model.get_level_count():
-		show_start_menu()
+func naechstes_level_starten() -> void:
+	var naechste_levelnummer := model.current_level_index + 1
+	if naechste_levelnummer >= model.anzahl_level():
+		startmenue_anzeigen()
 		return
-	hide_menus()
-	load_level(next_level_index)
+	menues_schliessen()
+	level_starten(naechste_levelnummer)
 
 
-func show_solution_hint() -> void:
-	solver_info_label.text = model.get_next_solution_hint(SOLVER_HINT_MAX_MOVES)
-	solver_info_label.visible = true
+func loesungszug_ausfuehren() -> void:
+	if is_moving or level_complete or ist_menue_offen():
+		return
+	if model.current_level_name == BOSS_LEVEL_NAME:
+		solver_info_label.text = BOSS_LEVEL_TIPP_TEXT
+		solver_info_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		solver_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		solver_info_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		solver_info_label.add_theme_color_override("font_color", Color.RED)
+		solver_info_label.add_theme_color_override("font_outline_color", Color.BLACK)
+		solver_info_label.add_theme_font_size_override("font_size", 72)
+		solver_info_label.add_theme_constant_override("outline_size", 8)
+		solver_info_label.visible = true
+		return
+
+	model.naechsten_loesungszug_suchen(MAX_LOESUNGSZUEGE)
+	var loesungsrichtung := model.loesungsrichtung_holen()
+	loesungstext_leeren()
+
+	if loesungsrichtung == Vector2i.ZERO:
+		return
+
+	solve_hint_button.disabled = true
+	await spieler_bewegen(loesungsrichtung)
+	solve_hint_button.disabled = level_complete
 
 
-func clear_solver_info() -> void:
+func loesungstext_leeren() -> void:
 	solver_info_label.text = ""
+	solver_info_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	solver_info_label.offset_left = 16.0
+	solver_info_label.offset_top = 118.0
+	solver_info_label.offset_right = 360.0
+	solver_info_label.offset_bottom = 168.0
+	solver_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	solver_info_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	solver_info_label.remove_theme_color_override("font_color")
+	solver_info_label.remove_theme_color_override("font_outline_color")
+	solver_info_label.add_theme_font_size_override("font_size", 18)
+	solver_info_label.remove_theme_constant_override("outline_size")
 	solver_info_label.visible = false
 
 
-func refresh_game_view() -> void:
+func ansicht_aktualisieren() -> void:
 	level_complete = false
 	level_complete_label.visible = false
 	level_finished_menu.visible = false
-	clear_solver_info()
-	view.draw_field(model)
-	update_player_sprite_position()
-	fit_game_to_screen()
-	update_level_complete_state()
+	solve_hint_button.disabled = false
+	loesungstext_leeren()
+	view.spielfeld_zeichnen(model)
+	spielerposition_anzeigen()
+	kamera_anpassen()
+	levelstatus_pruefen()
 
 
-func save_game() -> bool:
-	var save_file := FileAccess.open(SAVE_FILE_PATH, FileAccess.WRITE)
-	if save_file == null:
+func spiel_speichern() -> bool:
+	var datei := FileAccess.open(SPEICHERDATEI, FileAccess.WRITE)
+	if datei == null:
 		return false
-	save_file.store_string(JSON.stringify(model.get_save_data()))
+	datei.store_string(JSON.stringify(model.speicherdaten_erstellen()))
 	return true
 
 
-func load_saved_game() -> bool:
-	if not FileAccess.file_exists(SAVE_FILE_PATH):
+func spielstand_laden() -> bool:
+	if not FileAccess.file_exists(SPEICHERDATEI):
 		return false
 
-	var save_file := FileAccess.open(SAVE_FILE_PATH, FileAccess.READ)
-	if save_file == null:
+	var datei := FileAccess.open(SPEICHERDATEI, FileAccess.READ)
+	if datei == null:
 		return false
 
-	var save_data: Variant = JSON.parse_string(save_file.get_as_text())
-	if typeof(save_data) != TYPE_DICTIONARY or not model.load_save_data(save_data):
+	var daten: Variant = JSON.parse_string(datei.get_as_text())
+	if typeof(daten) != TYPE_DICTIONARY or not model.speicherdaten_laden(daten):
 		return false
 
-	refresh_game_view()
+	ansicht_aktualisieren()
 	return true

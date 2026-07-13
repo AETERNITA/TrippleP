@@ -4,17 +4,19 @@ extends RefCounted
 var _items: Array[String] = []
 
 
-func push(move: String) -> void:
-	_items.append(move)
+func zug_ablegen(zug: String) -> void:
+	_items.append(zug)
 
 
-func pop() -> Variant:
-	return null if _items.is_empty() else _items.pop_back()
+func zug_nehmen() -> Variant:
+	if _items.is_empty():
+		return null
+	return _items.pop_back()
 
 
-func is_empty() -> bool:
+func ist_leer() -> bool:
 	return _items.is_empty()
 
 
-func size() -> int:
+func anzahl() -> int:
 	return _items.size()

@@ -1,12 +1,12 @@
 class_name GameModel
 extends RefCounted
 
-const WALL := 0
-const EMPTY_FLOOR := 1
-const DYED_FLOOR := 2
+const WAND := 0
+const BODEN_LEER := 1
+const BODEN_GEFAERBT := 2
 
-const LEVEL_FILE_PATH := "res://data/levels.json"
-const SOLVER_DIRECTIONS: Array[Vector2i] = [
+const LEVEL_DATEI := "res://data/levels.json"
+const SUCHRICHTUNGEN: Array[Vector2i] = [
 	Vector2i.RIGHT,
 	Vector2i.LEFT,
 	Vector2i.DOWN,
@@ -26,86 +26,88 @@ var pending_solution_move: Variant = null
 var solution_state_key := ""
 
 
-func load_levels() -> bool:
+func leveldaten_laden() -> bool:
 	if not levels.is_empty():
 		return true
-	if not FileAccess.file_exists(LEVEL_FILE_PATH):
+	if not FileAccess.file_exists(LEVEL_DATEI):
 		return false
 
-	var level_file := FileAccess.open(LEVEL_FILE_PATH, FileAccess.READ)
-	if level_file == null:
+	var datei := FileAccess.open(LEVEL_DATEI, FileAccess.READ)
+	if datei == null:
 		return false
 
-	var parsed_data: Variant = JSON.parse_string(level_file.get_as_text())
-	if typeof(parsed_data) != TYPE_DICTIONARY:
+	var json_daten: Variant = JSON.parse_string(datei.get_as_text())
+	if typeof(json_daten) != TYPE_DICTIONARY:
 		return false
 
-	var loaded_levels: Variant = parsed_data.get("levels")
-	if typeof(loaded_levels) != TYPE_ARRAY or loaded_levels.is_empty():
+	var geladene_level: Variant = json_daten.get("levels")
+	if typeof(geladene_level) != TYPE_ARRAY or geladene_level.is_empty():
 		return false
 
-	levels = loaded_levels
+	levels = geladene_level
 	return true
 
 
-func get_level_count() -> int:
-	return levels.size() if load_levels() else 0
+func anzahl_level() -> int:
+	if leveldaten_laden():
+		return levels.size()
+	return 0
 
 
-func load_level(level_index: int) -> bool:
-	if not load_levels() or level_index < 0 or level_index >= levels.size():
+func level_laden(level_nummer: int) -> bool:
+	if not leveldaten_laden() or level_nummer < 0 or level_nummer >= levels.size():
 		return false
 
-	var level_data: Variant = levels[level_index]
-	if typeof(level_data) != TYPE_DICTIONARY:
+	var level_daten: Variant = levels[level_nummer]
+	if typeof(level_daten) != TYPE_DICTIONARY:
 		return false
 
-	var rows: Variant = level_data.get("rows")
-	if typeof(rows) != TYPE_ARRAY or rows.is_empty():
+	var zeilen: Variant = level_daten.get("rows")
+	if typeof(zeilen) != TYPE_ARRAY or zeilen.is_empty():
 		return false
 
-	var new_width := str(rows[0]).length()
-	if new_width == 0:
+	var neue_breite := str(zeilen[0]).length()
+	if neue_breite == 0:
 		return false
 
-	var new_grid: Array = []
-	var spawn_position := Vector2i(-1, -1)
-	for y in range(rows.size()):
-		var row_text := str(rows[y])
-		if row_text.length() != new_width:
+	var neues_raster: Array = []
+	var startfeld := Vector2i(-1, -1)
+	for y in range(zeilen.size()):
+		var zeile := str(zeilen[y])
+		if zeile.length() != neue_breite:
 			return false
 
-		var row: Array[int] = []
-		for x in range(new_width):
-			var tile := row_text.substr(x, 1)
-			match tile:
+		var reihe: Array[int] = []
+		for x in range(neue_breite):
+			var zeichen := zeile.substr(x, 1)
+			match zeichen:
 				"#":
-					row.append(WALL)
+					reihe.append(WAND)
 				".", "P":
-					row.append(EMPTY_FLOOR)
-					if tile == "P":
-						if spawn_position.x >= 0:
+					reihe.append(BODEN_LEER)
+					if zeichen == "P":
+						if startfeld.x >= 0:
 							return false
-						spawn_position = Vector2i(x, y)
+						startfeld = Vector2i(x, y)
 				_:
 					return false
-		new_grid.append(row)
+		neues_raster.append(reihe)
 
-	if spawn_position.x < 0:
+	if startfeld.x < 0:
 		return false
 
-	current_level_index = level_index
-	current_level_name = str(level_data.get("name", "Level %d" % (level_index + 1)))
-	width = new_width
-	height = rows.size()
-	grid = new_grid
-	player_x = spawn_position.x
-	player_y = spawn_position.y
-	invalidate_solution()
+	current_level_index = level_nummer
+	current_level_name = str(level_daten.get("name", "Level %d" % (level_nummer + 1)))
+	width = neue_breite
+	height = zeilen.size()
+	grid = neues_raster
+	player_x = startfeld.x
+	player_y = startfeld.y
+	loesung_zuruecksetzen()
 	return true
 
 
-func setup_test_level() -> void:
+func testlevel_erstellen() -> void:
 	current_level_index = 0
 	current_level_name = "Testlevel"
 	width = 21
@@ -115,40 +117,45 @@ func setup_test_level() -> void:
 	grid = []
 
 	for y in range(height):
-		var row: Array[int] = []
+		var reihe: Array[int] = []
 		for x in range(width):
-			var is_border := x == 0 or x == width - 1 or y == 0 or y == height - 1
-			row.append(WALL if is_border else EMPTY_FLOOR)
-		grid.append(row)
+			var ist_rand := x == 0 or x == width - 1 or y == 0 or y == height - 1
+			if ist_rand:
+				reihe.append(WAND)
+			else:
+				reihe.append(BODEN_LEER)
+		grid.append(reihe)
 
-	invalidate_solution()
+	loesung_zuruecksetzen()
 
 
-func get_cell(x: int, y: int) -> int:
-	return int(grid[y][x]) if _is_inside(x, y) else WALL
+func feld_auslesen(x: int, y: int) -> int:
+	if _ist_im_spielfeld(x, y):
+		return int(grid[y][x])
+	return WAND
 
 
-func set_cell_dyed(x: int, y: int) -> bool:
-	if not _is_inside(x, y) or int(grid[y][x]) != EMPTY_FLOOR:
+func feld_faerben(x: int, y: int) -> bool:
+	if not _ist_im_spielfeld(x, y) or int(grid[y][x]) != BODEN_LEER:
 		return false
-	grid[y][x] = DYED_FLOOR
+	grid[y][x] = BODEN_GEFAERBT
 	return true
 
 
-func get_empty_floor_count() -> int:
-	var empty_floor_count := 0
-	for row in grid:
-		for cell in row:
-			if int(cell) == EMPTY_FLOOR:
-				empty_floor_count += 1
-	return empty_floor_count
+func leere_felder_zaehlen() -> int:
+	var anzahl_leer := 0
+	for reihe in grid:
+		for feld in reihe:
+			if int(feld) == BODEN_LEER:
+				anzahl_leer += 1
+	return anzahl_leer
 
 
-func is_level_complete() -> bool:
-	return not grid.is_empty() and get_empty_floor_count() == 0
+func ist_level_geschafft() -> bool:
+	return not grid.is_empty() and leere_felder_zaehlen() == 0
 
 
-func get_save_data() -> Dictionary:
+func speicherdaten_erstellen() -> Dictionary:
 	return {
 		"level_index": current_level_index,
 		"level_name": current_level_name,
@@ -160,200 +167,221 @@ func get_save_data() -> Dictionary:
 	}
 
 
-func load_save_data(save_data: Dictionary) -> bool:
-	var saved_width := int(save_data.get("width", 0))
-	var saved_height := int(save_data.get("height", 0))
-	var saved_player_x := int(save_data.get("player_x", -1))
-	var saved_player_y := int(save_data.get("player_y", -1))
-	var saved_grid: Variant = save_data.get("grid")
+func speicherdaten_laden(speicherdaten: Dictionary) -> bool:
+	var gespeicherte_breite := int(speicherdaten.get("width", 0))
+	var gespeicherte_hoehe := int(speicherdaten.get("height", 0))
+	var gespeichertes_x := int(speicherdaten.get("player_x", -1))
+	var gespeichertes_y := int(speicherdaten.get("player_y", -1))
+	var gespeichertes_raster: Variant = speicherdaten.get("grid")
 
-	if not _is_valid_grid(saved_grid, saved_width, saved_height):
+	if not _ist_raster_gueltig(gespeichertes_raster, gespeicherte_breite, gespeicherte_hoehe):
 		return false
-	if saved_player_x < 0 or saved_player_x >= saved_width:
+	if gespeichertes_x < 0 or gespeichertes_x >= gespeicherte_breite:
 		return false
-	if saved_player_y < 0 or saved_player_y >= saved_height:
+	if gespeichertes_y < 0 or gespeichertes_y >= gespeicherte_hoehe:
 		return false
-	if int(saved_grid[saved_player_y][saved_player_x]) == WALL:
+	if int(gespeichertes_raster[gespeichertes_y][gespeichertes_x]) == WAND:
 		return false
 
-	current_level_index = int(save_data.get("level_index", 0))
-	current_level_name = str(save_data.get("level_name", "Level %d" % (current_level_index + 1)))
-	width = saved_width
-	height = saved_height
-	player_x = saved_player_x
-	player_y = saved_player_y
-	grid = saved_grid.duplicate(true)
-	invalidate_solution()
+	current_level_index = int(speicherdaten.get("level_index", 0))
+	current_level_name = str(speicherdaten.get("level_name", "Level %d" % (current_level_index + 1)))
+	width = gespeicherte_breite
+	height = gespeicherte_hoehe
+	player_x = gespeichertes_x
+	player_y = gespeichertes_y
+	grid = gespeichertes_raster.duplicate(true)
+	loesung_zuruecksetzen()
 	return true
 
 
-func can_current_level_be_solved_recursively(max_moves: int = 20) -> bool:
-	invalidate_solution()
-	if grid.is_empty() or max_moves <= 0:
+func ist_rekursiv_loesbar(maximale_zuege: int = 20) -> bool:
+	loesung_zuruecksetzen()
+	if grid.is_empty() or maximale_zuege <= 0:
 		return false
 
-	var test_grid := grid.duplicate(true)
+	var test_raster := grid.duplicate(true)
 	var start_position := Vector2i(player_x, player_y)
-	_set_cell_dyed_in_grid(test_grid, start_position)
-	var visited_states := {}
+	_feld_im_raster_faerben(test_raster, start_position)
+	var besuchte_zustaende := {}
 
-	for depth_limit in range(1, max_moves + 1):
-		var solution_moves := MoveStack.new()
-		if _search_solution_recursive(
+	# Erst kurze Lösungen ausprobieren, danach immer einen Zug mehr erlauben.
+	for zuglimit in range(1, maximale_zuege + 1):
+		var loesungszuege := MoveStack.new()
+		if _loesung_rekursiv_suchen(
 			start_position,
-			test_grid,
-			depth_limit,
-			visited_states,
-			solution_moves
+			test_raster,
+			zuglimit,
+			besuchte_zustaende,
+			loesungszuege
 		):
-			last_solution_moves = solution_moves
-			solution_state_key = _build_solver_state_key(start_position, test_grid)
+			last_solution_moves = loesungszuege
+			solution_state_key = _zustandsschluessel_bauen(start_position, test_raster)
 			return true
 
 	return false
 
 
-func get_next_solution_hint(max_moves: int = 20) -> String:
-	if is_level_complete():
+func naechsten_loesungszug_suchen(maximale_zuege: int = 20) -> String:
+	if ist_level_geschafft():
 		return "Level ist bereits geschafft."
 
-	var current_state_key := _build_solver_state_key(Vector2i(player_x, player_y), grid)
-	if pending_solution_move != null and solution_state_key == current_state_key:
+	var aktueller_zustand := _zustandsschluessel_bauen(Vector2i(player_x, player_y), grid)
+	if pending_solution_move != null and solution_state_key == aktueller_zustand:
 		return "Nächster Zug: " + str(pending_solution_move)
 
-	if last_solution_moves.is_empty() or solution_state_key != current_state_key:
-		if not can_current_level_be_solved_recursively(max_moves):
-			return "Keine Lösung in %d Zügen gefunden." % max_moves
+	if last_solution_moves.ist_leer() or solution_state_key != aktueller_zustand:
+		if not ist_rekursiv_loesbar(maximale_zuege):
+			return "Keine Lösung in %d Zügen gefunden." % maximale_zuege
 
-	pending_solution_move = last_solution_moves.pop()
+	pending_solution_move = last_solution_moves.zug_nehmen()
 	if pending_solution_move == null:
 		return "Level ist bereits geschafft."
 	return "Nächster Zug: " + str(pending_solution_move)
 
 
-func register_player_move(direction: Vector2i) -> void:
-	if pending_solution_move == _direction_to_text(direction):
+func loesungsrichtung_holen() -> Vector2i:
+	if pending_solution_move == null:
+		return Vector2i.ZERO
+	return _text_als_richtung(str(pending_solution_move))
+
+
+func spielerzug_eintragen(richtung: Vector2i) -> void:
+	if pending_solution_move == _richtung_als_text(richtung):
 		pending_solution_move = null
-		solution_state_key = _build_solver_state_key(Vector2i(player_x, player_y), grid)
+		solution_state_key = _zustandsschluessel_bauen(Vector2i(player_x, player_y), grid)
 	else:
-		invalidate_solution()
+		loesung_zuruecksetzen()
 
 
-func invalidate_solution() -> void:
+func loesung_zuruecksetzen() -> void:
 	last_solution_moves = MoveStack.new()
 	pending_solution_move = null
 	solution_state_key = ""
 
 
-func _search_solution_recursive(
-	position: Vector2i,
-	current_grid: Array,
-	moves_left: int,
-	visited_states: Dictionary,
-	solution_moves: MoveStack
+func _loesung_rekursiv_suchen(
+	spieler_position: Vector2i,
+	raster: Array,
+	uebrige_zuege: int,
+	besuchte_zustaende: Dictionary,
+	loesungszuege: MoveStack
 ) -> bool:
-	if _is_grid_complete(current_grid):
+	if _ist_raster_fertig(raster):
 		return true
-	if moves_left <= 0:
+	if uebrige_zuege <= 0:
 		return false
 
-	var state_key := _build_solver_state_key(position, current_grid)
-	if int(visited_states.get(state_key, -1)) >= moves_left:
+	var zustand := _zustandsschluessel_bauen(spieler_position, raster)
+	if int(besuchte_zustaende.get(zustand, -1)) >= uebrige_zuege:
 		return false
-	visited_states[state_key] = moves_left
+	besuchte_zustaende[zustand] = uebrige_zuege
 
-	for direction in SOLVER_DIRECTIONS:
-		if _get_cell_in_grid(current_grid, position + direction) == WALL:
+	for richtung in SUCHRICHTUNGEN:
+		if _feld_im_raster_auslesen(raster, spieler_position + richtung) == WAND:
 			continue
 
-		var next_grid := current_grid.duplicate(true)
-		var next_position := _slide_and_dye_in_grid(position, direction, next_grid)
-		if _search_solution_recursive(
-			next_position,
-			next_grid,
-			moves_left - 1,
-			visited_states,
-			solution_moves
+		var neues_raster := raster.duplicate(true)
+		var neue_position := _rutschen_und_faerben(spieler_position, richtung, neues_raster)
+		if _loesung_rekursiv_suchen(
+			neue_position,
+			neues_raster,
+			uebrige_zuege - 1,
+			besuchte_zustaende,
+			loesungszuege
 		):
-			solution_moves.push(_direction_to_text(direction))
+			# Beim Zurückgehen aus der Rekursion landen die Züge auf dem Stapel.
+			loesungszuege.zug_ablegen(_richtung_als_text(richtung))
 			return true
 
 	return false
 
 
-func _slide_and_dye_in_grid(
+func _rutschen_und_faerben(
 	start_position: Vector2i,
-	direction: Vector2i,
-	target_grid: Array
+	richtung: Vector2i,
+	raster: Array
 ) -> Vector2i:
-	var current_position := start_position
-	var next_position := current_position + direction
-	while _get_cell_in_grid(target_grid, next_position) != WALL:
-		current_position = next_position
-		_set_cell_dyed_in_grid(target_grid, current_position)
-		next_position += direction
-	return current_position
+	var aktuelle_position := start_position
+	var naechste_position := aktuelle_position + richtung
+	while _feld_im_raster_auslesen(raster, naechste_position) != WAND:
+		aktuelle_position = naechste_position
+		_feld_im_raster_faerben(raster, aktuelle_position)
+		naechste_position += richtung
+	return aktuelle_position
 
 
-func _get_cell_in_grid(target_grid: Array, position: Vector2i) -> int:
-	if _is_inside(position.x, position.y):
-		return int(target_grid[position.y][position.x])
-	return WALL
+func _feld_im_raster_auslesen(raster: Array, feld_position: Vector2i) -> int:
+	if _ist_im_spielfeld(feld_position.x, feld_position.y):
+		return int(raster[feld_position.y][feld_position.x])
+	return WAND
 
 
-func _set_cell_dyed_in_grid(target_grid: Array, position: Vector2i) -> void:
-	if _is_inside(position.x, position.y) and int(target_grid[position.y][position.x]) == EMPTY_FLOOR:
-		target_grid[position.y][position.x] = DYED_FLOOR
+func _feld_im_raster_faerben(raster: Array, feld_position: Vector2i) -> void:
+	if _ist_im_spielfeld(feld_position.x, feld_position.y) and int(raster[feld_position.y][feld_position.x]) == BODEN_LEER:
+		raster[feld_position.y][feld_position.x] = BODEN_GEFAERBT
 
 
-func _is_grid_complete(target_grid: Array) -> bool:
-	for row in target_grid:
-		for cell in row:
-			if int(cell) == EMPTY_FLOOR:
+func _ist_raster_fertig(raster: Array) -> bool:
+	for reihe in raster:
+		for feld in reihe:
+			if int(feld) == BODEN_LEER:
 				return false
 	return true
 
 
-func _build_solver_state_key(position: Vector2i, target_grid: Array) -> String:
-	var cells := PackedStringArray()
-	cells.resize(width * height)
+func _zustandsschluessel_bauen(spieler_position: Vector2i, raster: Array) -> String:
+	var felder := PackedStringArray()
+	felder.resize(width * height)
 	var index := 0
-	for row in target_grid:
-		for cell in row:
-			cells[index] = str(int(cell))
+	for reihe in raster:
+		for feld in reihe:
+			felder[index] = str(int(feld))
 			index += 1
-	return "%d,%d:%s" % [position.x, position.y, "".join(cells)]
+	return "%d,%d:%s" % [spieler_position.x, spieler_position.y, "".join(felder)]
 
 
-func _direction_to_text(direction: Vector2i) -> String:
-	if direction == Vector2i.RIGHT:
+func _richtung_als_text(richtung: Vector2i) -> String:
+	if richtung == Vector2i.RIGHT:
 		return "rechts"
-	if direction == Vector2i.LEFT:
+	if richtung == Vector2i.LEFT:
 		return "links"
-	if direction == Vector2i.DOWN:
+	if richtung == Vector2i.DOWN:
 		return "unten"
-	if direction == Vector2i.UP:
+	if richtung == Vector2i.UP:
 		return "oben"
 	return ""
 
 
-func _is_inside(x: int, y: int) -> bool:
+func _text_als_richtung(richtung_text: String) -> Vector2i:
+	match richtung_text:
+		"rechts":
+			return Vector2i.RIGHT
+		"links":
+			return Vector2i.LEFT
+		"unten":
+			return Vector2i.DOWN
+		"oben":
+			return Vector2i.UP
+	return Vector2i.ZERO
+
+
+func _ist_im_spielfeld(x: int, y: int) -> bool:
 	return x >= 0 and x < width and y >= 0 and y < height
 
 
-func _is_valid_grid(candidate: Variant, expected_width: int, expected_height: int) -> bool:
-	if expected_width <= 0 or expected_height <= 0 or typeof(candidate) != TYPE_ARRAY:
+func _ist_raster_gueltig(raster: Variant, erwartete_breite: int, erwartete_hoehe: int) -> bool:
+	if erwartete_breite <= 0 or erwartete_hoehe <= 0 or typeof(raster) != TYPE_ARRAY:
 		return false
-	if candidate.size() != expected_height:
+	if raster.size() != erwartete_hoehe:
 		return false
 
-	for row in candidate:
-		if typeof(row) != TYPE_ARRAY or row.size() != expected_width:
+	for reihe in raster:
+		if typeof(reihe) != TYPE_ARRAY or reihe.size() != erwartete_breite:
 			return false
-		for value in row:
-			if typeof(value) != TYPE_INT and typeof(value) != TYPE_FLOAT:
+		for wert in reihe:
+			if typeof(wert) != TYPE_INT and typeof(wert) != TYPE_FLOAT:
 				return false
-			var cell := int(value)
-			if cell != WALL and cell != EMPTY_FLOOR and cell != DYED_FLOOR:
+			var feld := int(wert)
+			if feld != WAND and feld != BODEN_LEER and feld != BODEN_GEFAERBT:
 				return false
 	return true

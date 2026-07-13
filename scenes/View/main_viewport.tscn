@@ -1,15 +1,17 @@
 [gd_scene format=3 uid="uid://b0snkyr3wcs0y"]
 
-[ext_resource type="Texture2D" uid="uid://14vabljswydn" path="res://scenes/View/Tilemaps/simpleGraphics_tiles32x32.png" id="1_i6bm5"]
 [ext_resource type="Script" uid="uid://by72tr2php2mo" path="res://scripts/controller.gd" id="1_ynq4k"]
 [ext_resource type="Script" uid="uid://cy5em70r56i8d" path="res://scripts/view.gd" id="3_jr2tl"]
 [ext_resource type="PackedScene" uid="uid://bmtnw05akn1f4" path="res://scenes/Player.tscn" id="4_jr2tl"]
 [ext_resource type="Texture2D" uid="uid://c2fhtmdlkmxm1" path="res://scenes/View/Assets/floor_texture_32.png" id="5_floor"]
-[ext_resource type="Texture2D" uid="uid://dddl42eru43rk" path="res://scenes/View/Assets/dyed_floor_texture_32.png" id="6_dyed_floor"]
-[ext_resource type="Texture2D" uid="uid://dkjpet1vsvn7f" path="res://scenes/View/Assets/wall_texture_32.png" id="7_wall"]
+[ext_resource type="Texture2D" uid="uid://b6ee5qjfaan78" path="res://scenes/View/Assets/dyed_floor_texture_32.png" id="6_dyed_floor"]
+[ext_resource type="Texture2D" uid="uid://bfl31x5v4cjai" path="res://scenes/View/Assets/wall_texture_32.png" id="7_wall"]
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_cr83f"]
+load_path = "res://.godot/imported/simpleGraphics_tiles32x32.png-5bd52b0ae1b90a25edcabd0f6bb9ca0d.ctex"
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_y8ve3"]
-texture = ExtResource("1_i6bm5")
+texture = SubResource("CompressedTexture2D_cr83f")
 texture_region_size = Vector2i(32, 32)
 0:0/0 = 0
 1:0/0 = 0
@@ -274,10 +276,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -180.0
-offset_top = -280.0
-offset_right = 180.0
-offset_bottom = 280.0
+offset_left = -200.0
+offset_top = -320.0
+offset_right = 200.0
+offset_bottom = 320.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -285,27 +287,32 @@ grow_vertical = 2
 layout_mode = 0
 offset_left = 32.0
 offset_top = 24.0
-offset_right = 328.0
+offset_right = 368.0
 offset_bottom = 62.0
 theme_override_font_sizes/font_size = 28
 text = "Levelauswahl"
 horizontal_alignment = 1
 
-[node name="LevelButtonContainer" type="VBoxContainer" parent="CanvasLayer/LevelSelectionMenu/MenuPanel" unique_id=502238033]
+[node name="LevelScrollContainer" type="ScrollContainer" parent="CanvasLayer/LevelSelectionMenu/MenuPanel" unique_id=271382367]
 layout_mode = 0
 offset_left = 50.0
 offset_top = 84.0
-offset_right = 310.0
-offset_bottom = 440.0
+offset_right = 350.0
+offset_bottom = 530.0
+horizontal_scroll_mode = 0
+
+[node name="LevelButtonContainer" type="VBoxContainer" parent="CanvasLayer/LevelSelectionMenu/MenuPanel/LevelScrollContainer" unique_id=502238033]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
 [node name="BackButton" type="Button" parent="CanvasLayer/LevelSelectionMenu/MenuPanel" unique_id=1491180924]
 custom_minimum_size = Vector2(260, 42)
 layout_mode = 0
 offset_left = 50.0
-offset_top = 478.0
-offset_right = 310.0
-offset_bottom = 520.0
+offset_top = 552.0
+offset_right = 350.0
+offset_bottom = 594.0
 text = "Zurück"
 
 [node name="LevelFinishedMenu" type="Control" parent="CanvasLayer" unique_id=2044394567]
@@ -341,8 +348,8 @@ theme_override_font_sizes/font_size = 26
 text = "Level geschafft!"
 horizontal_alignment = 1
 vertical_alignment = 1
-text_overrun_behavior = 3
 autowrap_mode = 3
+text_overrun_behavior = 3
 max_lines_visible = 2
 
 [node name="ButtonContainer" type="VBoxContainer" parent="CanvasLayer/LevelFinishedMenu/MenuPanel" unique_id=1741277891]
