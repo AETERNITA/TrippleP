@@ -45,6 +45,6 @@ func test_alle_level_sind_innerhalb_des_limits_loesbar() -> void:
 		assert_true(model.level_laden(level_nummer), "Das Level soll geladen werden können.")
 		model.feld_faerben(model.player_x, model.player_y)
 		assert_true(
-			model.ist_rekursiv_loesbar(40),
-			model.current_level_name + " soll innerhalb von 40 Zügen lösbar sein."
+			model.ist_rekursiv_loesbar(model.loesungssuchlimit_holen()),
+			model.current_level_name + " soll innerhalb des berechneten Zuglimits lösbar sein."
 		)

@@ -1,18 +1,12 @@
 class_name GameModel
 extends RefCounted
 
+const SolutionSearchScript = preload("res://scripts/solution_search.gd")
 const WAND := 0
 const BODEN_LEER := 1
 const BODEN_GEFAERBT := 2
 
 const LEVEL_DATEI := "res://data/levels.json"
-const SUCHRICHTUNGEN: Array[Vector2i] = [
-	Vector2i.RIGHT,
-	Vector2i.LEFT,
-	Vector2i.DOWN,
-	Vector2i.UP,
-]
-
 var grid: Array = []
 var width := 0
 var height := 0
@@ -24,6 +18,7 @@ var current_level_name := ""
 var last_solution_moves := MoveStack.new()
 var pending_solution_move: Variant = null
 var solution_state_key := ""
+var _such_thread: Thread = null
 
 
 func leveldaten_laden() -> bool:
@@ -52,6 +47,16 @@ func anzahl_level() -> int:
 	if leveldaten_laden():
 		return levels.size()
 	return 0
+
+
+func levelnamen_holen() -> Array[String]:
+	var namen: Array[String] = []
+	if not leveldaten_laden():
+		return namen
+	for level_nummer in range(levels.size()):
+		var level_daten: Dictionary = levels[level_nummer]
+		namen.append(str(level_daten.get("name", "Level %d" % (level_nummer + 1))))
+	return namen
 
 
 func level_laden(level_nummer: int) -> bool:
@@ -195,30 +200,100 @@ func speicherdaten_laden(speicherdaten: Dictionary) -> bool:
 
 
 func ist_rekursiv_loesbar(maximale_zuege: int = 20) -> bool:
-	loesung_zuruecksetzen()
-	if grid.is_empty() or maximale_zuege <= 0:
+	if not loesungssuche_starten(maximale_zuege):
+		return false
+	var ergebnis: Variant = _such_thread.wait_to_finish()
+	_such_thread = null
+	return _suchergebnis_uebernehmen(ergebnis)
+
+
+func loesungssuchlimit_holen() -> int:
+	# Das Limit richtet sich nach der gesamten Levelgroesse und schrumpft nicht
+	# bei verstreuten Restfeldern in einem weit fortgeschrittenen Boss-Level.
+	var begehbare_felder := width * height - _waende_zaehlen()
+	return maxi(40, begehbare_felder + 40)
+
+
+func loesungssuche_starten(maximale_zuege: int = 20) -> bool:
+	if _such_thread != null or grid.is_empty() or maximale_zuege <= 0:
 		return false
 
-	var test_raster := grid.duplicate(true)
+	last_solution_moves.leeren()
+	pending_solution_move = null
+	solution_state_key = ""
+	var raster_kopie := grid.duplicate(true)
 	var start_position := Vector2i(player_x, player_y)
-	_feld_im_raster_faerben(test_raster, start_position)
-	var besuchte_zustaende := {}
-
-	# Erst kurze Lösungen ausprobieren, danach immer einen Zug mehr erlauben.
-	for zuglimit in range(1, maximale_zuege + 1):
-		var loesungszuege := MoveStack.new()
-		if _loesung_rekursiv_suchen(
+	_such_thread = Thread.new()
+	var fehler := _such_thread.start(
+		_loesung_im_thread.bind(
+			raster_kopie,
 			start_position,
-			test_raster,
-			zuglimit,
-			besuchte_zustaende,
-			loesungszuege
-		):
-			last_solution_moves = loesungszuege
-			solution_state_key = _zustandsschluessel_bauen(start_position, test_raster)
-			return true
+			width,
+			height,
+			maximale_zuege
+		)
+	)
+	if fehler != OK:
+		_such_thread = null
+		return false
+	return true
 
-	return false
+
+func loesungssuche_ergebnis_bereit() -> bool:
+	return _such_thread != null and not _such_thread.is_alive()
+
+
+func loesungssuche_ergebnis_abholen() -> String:
+	if _such_thread == null:
+		return "Keine Lösungssuche aktiv."
+	if _such_thread.is_alive():
+		return "Lösung wird noch gesucht."
+
+	var ergebnis: Variant = _such_thread.wait_to_finish()
+	_such_thread = null
+	if not _suchergebnis_uebernehmen(ergebnis):
+		return "Keine Lösung innerhalb des Zuglimits gefunden."
+
+	pending_solution_move = last_solution_moves.zug_nehmen()
+	if pending_solution_move == null:
+		return "Level ist bereits geschafft."
+	return "Nächster Zug: " + _richtung_als_text(pending_solution_move)
+
+
+func loesungssuche_beenden() -> void:
+	if _such_thread == null:
+		return
+	_such_thread.wait_to_finish()
+	_such_thread = null
+
+
+func _loesung_im_thread(
+	raster: Array,
+	start_position: Vector2i,
+	breite: int,
+	hoehe: int,
+	maximale_zuege: int
+) -> Dictionary:
+	# Der Worker besitzt eine tiefe Rasterkopie. Er teilt keine veraenderlichen
+	# Daten mit Model, Controller oder View; deshalb ist kein Mutex erforderlich.
+	var suche := SolutionSearchScript.new()
+	return suche.suchen(raster, start_position, breite, hoehe, maximale_zuege)
+
+
+func _suchergebnis_uebernehmen(ergebnis: Variant) -> bool:
+	if typeof(ergebnis) != TYPE_DICTIONARY or not bool(ergebnis.get("erfolgreich", false)):
+		return false
+	var zuege: Variant = ergebnis.get("zuege")
+	if typeof(zuege) != TYPE_ARRAY:
+		return false
+	last_solution_moves = MoveStack.new()
+	for index in range(zuege.size() - 1, -1, -1):
+		if typeof(zuege[index]) != TYPE_VECTOR2I:
+			return false
+		last_solution_moves.zug_ablegen(zuege[index])
+	pending_solution_move = null
+	solution_state_key = _zustandsschluessel_bauen(Vector2i(player_x, player_y), grid)
+	return true
 
 
 func naechsten_loesungszug_suchen(maximale_zuege: int = 20) -> String:
@@ -227,7 +302,7 @@ func naechsten_loesungszug_suchen(maximale_zuege: int = 20) -> String:
 
 	var aktueller_zustand := _zustandsschluessel_bauen(Vector2i(player_x, player_y), grid)
 	if pending_solution_move != null and solution_state_key == aktueller_zustand:
-		return "Nächster Zug: " + str(pending_solution_move)
+		return "Nächster Zug: " + _richtung_als_text(pending_solution_move)
 
 	if last_solution_moves.ist_leer() or solution_state_key != aktueller_zustand:
 		if not ist_rekursiv_loesbar(maximale_zuege):
@@ -236,17 +311,17 @@ func naechsten_loesungszug_suchen(maximale_zuege: int = 20) -> String:
 	pending_solution_move = last_solution_moves.zug_nehmen()
 	if pending_solution_move == null:
 		return "Level ist bereits geschafft."
-	return "Nächster Zug: " + str(pending_solution_move)
+	return "Nächster Zug: " + _richtung_als_text(pending_solution_move)
 
 
 func loesungsrichtung_holen() -> Vector2i:
 	if pending_solution_move == null:
 		return Vector2i.ZERO
-	return _text_als_richtung(str(pending_solution_move))
+	return pending_solution_move
 
 
 func spielerzug_eintragen(richtung: Vector2i) -> void:
-	if pending_solution_move == _richtung_als_text(richtung):
+	if pending_solution_move == richtung:
 		pending_solution_move = null
 		solution_state_key = _zustandsschluessel_bauen(Vector2i(player_x, player_y), grid)
 	else:
@@ -254,80 +329,10 @@ func spielerzug_eintragen(richtung: Vector2i) -> void:
 
 
 func loesung_zuruecksetzen() -> void:
+	loesungssuche_beenden()
 	last_solution_moves = MoveStack.new()
 	pending_solution_move = null
 	solution_state_key = ""
-
-
-func _loesung_rekursiv_suchen(
-	spieler_position: Vector2i,
-	raster: Array,
-	uebrige_zuege: int,
-	besuchte_zustaende: Dictionary,
-	loesungszuege: MoveStack
-) -> bool:
-	if _ist_raster_fertig(raster):
-		return true
-	if uebrige_zuege <= 0:
-		return false
-
-	var zustand := _zustandsschluessel_bauen(spieler_position, raster)
-	if int(besuchte_zustaende.get(zustand, -1)) >= uebrige_zuege:
-		return false
-	besuchte_zustaende[zustand] = uebrige_zuege
-
-	for richtung in SUCHRICHTUNGEN:
-		if _feld_im_raster_auslesen(raster, spieler_position + richtung) == WAND:
-			continue
-
-		var neues_raster := raster.duplicate(true)
-		var neue_position := _rutschen_und_faerben(spieler_position, richtung, neues_raster)
-		if _loesung_rekursiv_suchen(
-			neue_position,
-			neues_raster,
-			uebrige_zuege - 1,
-			besuchte_zustaende,
-			loesungszuege
-		):
-			# Beim Zurückgehen aus der Rekursion landen die Züge auf dem Stapel.
-			loesungszuege.zug_ablegen(_richtung_als_text(richtung))
-			return true
-
-	return false
-
-
-func _rutschen_und_faerben(
-	start_position: Vector2i,
-	richtung: Vector2i,
-	raster: Array
-) -> Vector2i:
-	var aktuelle_position := start_position
-	var naechste_position := aktuelle_position + richtung
-	while _feld_im_raster_auslesen(raster, naechste_position) != WAND:
-		aktuelle_position = naechste_position
-		_feld_im_raster_faerben(raster, aktuelle_position)
-		naechste_position += richtung
-	return aktuelle_position
-
-
-func _feld_im_raster_auslesen(raster: Array, feld_position: Vector2i) -> int:
-	if _ist_im_spielfeld(feld_position.x, feld_position.y):
-		return int(raster[feld_position.y][feld_position.x])
-	return WAND
-
-
-func _feld_im_raster_faerben(raster: Array, feld_position: Vector2i) -> void:
-	if _ist_im_spielfeld(feld_position.x, feld_position.y) and int(raster[feld_position.y][feld_position.x]) == BODEN_LEER:
-		raster[feld_position.y][feld_position.x] = BODEN_GEFAERBT
-
-
-func _ist_raster_fertig(raster: Array) -> bool:
-	for reihe in raster:
-		for feld in reihe:
-			if int(feld) == BODEN_LEER:
-				return false
-	return true
-
 
 func _zustandsschluessel_bauen(spieler_position: Vector2i, raster: Array) -> String:
 	var felder := PackedStringArray()
@@ -352,21 +357,17 @@ func _richtung_als_text(richtung: Vector2i) -> String:
 	return ""
 
 
-func _text_als_richtung(richtung_text: String) -> Vector2i:
-	match richtung_text:
-		"rechts":
-			return Vector2i.RIGHT
-		"links":
-			return Vector2i.LEFT
-		"unten":
-			return Vector2i.DOWN
-		"oben":
-			return Vector2i.UP
-	return Vector2i.ZERO
-
-
 func _ist_im_spielfeld(x: int, y: int) -> bool:
 	return x >= 0 and x < width and y >= 0 and y < height
+
+
+func _waende_zaehlen() -> int:
+	var anzahl := 0
+	for reihe in grid:
+		for feld in reihe:
+			if int(feld) == WAND:
+				anzahl += 1
+	return anzahl
 
 
 func _ist_raster_gueltig(raster: Variant, erwartete_breite: int, erwartete_hoehe: int) -> bool:
